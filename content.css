@@ -43,6 +43,23 @@
   font: inherit;
   cursor: pointer;
 }
+.rclcp-sort-button {
+  padding: 8px 10px;
+  border: 1px solid #466da8;
+  border-radius: 4px;
+  background: #071d49;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rclcp-sort-button:disabled {
+  border-color: #b7c2d3;
+  background: #eef2f7;
+  color: #59677d;
+  cursor: default;
+}
 .rclcp-sort-count { color: #59677d; font-size: 12px; white-space: nowrap; }
 
 @media (max-width: 700px) {

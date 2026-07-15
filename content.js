@@ -5,7 +5,7 @@
   const AVG_LABEL_SELECTOR = '[data-testid^="cruise-price-avg-label-"]';
   const SORT_PANEL_ID = "rclcp-sort-panel";
   const PRICE_BOX_CLASS = "rclcp-price-box";
-  const DEFAULT_SETTINGS = { guestMode: "auto", manualGuests: 2 };
+  const DEFAULT_SETTINGS = { guestMode: "auto", manualGuests: 2, showPersonNight: false };
 
   let settings = { ...DEFAULT_SETTINGS };
   let scheduled = false;
@@ -26,6 +26,7 @@
       if (area !== "sync") return;
       if (changes.guestMode) settings.guestMode = changes.guestMode.newValue;
       if (changes.manualGuests) settings.manualGuests = changes.manualGuests.newValue;
+      if (changes.showPersonNight) settings.showPersonNight = changes.showPersonNight.newValue;
       document.querySelectorAll(`.${PRICE_BOX_CLASS}`).forEach((node) => node.remove());
       scheduleProcess();
     });
@@ -96,11 +97,14 @@
       ? `<div class="rclcp-warning">${escapeHtml(i18n.assumedGuests.replace("{count}", guestInfo.count))}</div>`
       : "";
 
+    const personNight = settings.showPersonNight
+      ? `<div class="rclcp-person-night">${escapeHtml(formatMoney(personPerNight, price.currencyCode, price.symbol))} ${escapeHtml(i18n.perPersonNight)}</div>`
+      : "";
+
     box.innerHTML = `
       <div class="rclcp-total">${escapeHtml(formatMoney(cabinTotal, price.currencyCode, price.symbol))} ${escapeHtml(i18n.perCabin)}</div>
       <div class="rclcp-night">${escapeHtml(formatMoney(cabinPerNight, price.currencyCode, price.symbol))} ${escapeHtml(i18n.perCabinNight)}</div>
-      <div class="rclcp-person-night">${escapeHtml(formatMoney(personPerNight, price.currencyCode, price.symbol))} ${escapeHtml(i18n.perPersonNight)}</div>
-      <div class="rclcp-details">${escapeHtml(formatMoney(price.amount, price.currencyCode, price.symbol))} × ${guestInfo.count} ${escapeHtml(i18n.guests)} ÷ ${nights} ${escapeHtml(i18n.nights)}</div>
+      ${personNight}
       ${warning}
     `;
   }
@@ -238,35 +242,121 @@
   }
 
   function ensureSortPanel() {
-    if (document.getElementById(SORT_PANEL_ID) || !document.querySelector(PRICE_SELECTOR)) return;
+    if (!document.querySelector(PRICE_SELECTOR)) return;
 
-    const panel = document.createElement("div");
-    panel.id = SORT_PANEL_ID;
-    panel.className = "rclcp-sort-panel";
-    panel.innerHTML = `
+    let panel = document.getElementById(SORT_PANEL_ID);
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = SORT_PANEL_ID;
+      panel.className = "rclcp-sort-panel";
+      panel.innerHTML = `
       <label for="rclcp-sort-select">${escapeHtml(i18n.sortLabel)}</label>
-      <select id="rclcp-sort-select">
-        <option value="original">${escapeHtml(i18n.original)}</option>
-        <option value="cabinNightAsc">${escapeHtml(i18n.cabinNightAsc)}</option>
-        <option value="cabinNightDesc">${escapeHtml(i18n.cabinNightDesc)}</option>
-        <option value="personNightAsc">${escapeHtml(i18n.personNightAsc)}</option>
-        <option value="personNightDesc">${escapeHtml(i18n.personNightDesc)}</option>
-        <option value="cabinTotalAsc">${escapeHtml(i18n.cabinTotalAsc)}</option>
-        <option value="cabinTotalDesc">${escapeHtml(i18n.cabinTotalDesc)}</option>
-        <option value="personPriceAsc">${escapeHtml(i18n.personPriceAsc)}</option>
-        <option value="personPriceDesc">${escapeHtml(i18n.personPriceDesc)}</option>
-        <option value="nightsAsc">${escapeHtml(i18n.nightsAsc)}</option>
-        <option value="nightsDesc">${escapeHtml(i18n.nightsDesc)}</option>
-      </select>
+      <select id="rclcp-sort-select"></select>
+      <button type="button" class="rclcp-sort-button" data-rclcp-action="load-more">${escapeHtml(i18n.loadMore)}</button>
+      <button type="button" class="rclcp-sort-button" data-rclcp-action="resort">${escapeHtml(i18n.resort)}</button>
       <span class="rclcp-sort-count"></span>
     `;
 
-    panel.querySelector("select").addEventListener("change", (event) => sortLoadedCards(event.target.value));
+      panel.querySelector("select").addEventListener("change", (event) => sortLoadedCards(event.target.value));
+      panel.querySelector('[data-rclcp-action="load-more"]').addEventListener("click", loadMoreCruises);
+      panel.querySelector('[data-rclcp-action="resort"]').addEventListener("click", resortLoadedCards);
+    }
 
+    updateSortOptions(panel);
+    placeSortPanel(panel);
+    updateLoadMoreState();
+  }
+
+  function updateSortOptions(panel) {
+    const select = panel.querySelector("select");
+    const selected = select.value || "original";
+    const options = [
+      ["original", i18n.original],
+      ["cabinNightAsc", i18n.cabinNightAsc],
+      ["cabinNightDesc", i18n.cabinNightDesc],
+      ...(settings.showPersonNight ? [["personNightAsc", i18n.personNightAsc], ["personNightDesc", i18n.personNightDesc]] : []),
+      ["cabinTotalAsc", i18n.cabinTotalAsc],
+      ["cabinTotalDesc", i18n.cabinTotalDesc],
+      ["nightsAsc", i18n.nightsAsc],
+      ["nightsDesc", i18n.nightsDesc]
+    ];
+    const valid = options.some(([value]) => value === selected);
+    const signature = options.map(([value]) => value).join("|");
+    if (select.dataset.rclcpOptions === signature) return;
+
+    select.innerHTML = options.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("");
+    select.dataset.rclcpOptions = signature;
+    select.value = valid ? selected : "original";
+  }
+
+  function placeSortPanel(panel) {
+    const heading = findResultsHeading();
+    const titleRow = heading?.closest('[data-testid="number-results-label"]');
+    if (titleRow) {
+      if (panel.previousElementSibling === titleRow) return;
+      titleRow.insertAdjacentElement("afterend", panel);
+      return;
+    }
+    if (heading) {
+      if (panel.previousElementSibling === heading) return;
+      heading.insertAdjacentElement("afterend", panel);
+      return;
+    }
     const nativeSort = findNativeSortControl();
-    const insertionTarget = nativeSort?.parentElement || findResultsHeading() || document.querySelector(PRICE_SELECTOR).closest("main") || document.body;
-    if (nativeSort?.parentElement) nativeSort.parentElement.insertAdjacentElement("afterend", panel);
-    else insertionTarget.insertAdjacentElement("afterbegin", panel);
+    const insertionTarget = nativeSort?.parentElement || document.querySelector(PRICE_SELECTOR).closest("main") || document.body;
+    if (nativeSort?.parentElement) {
+      if (panel.previousElementSibling !== nativeSort.parentElement) nativeSort.parentElement.insertAdjacentElement("afterend", panel);
+    } else if (insertionTarget.firstElementChild !== panel) {
+      insertionTarget.insertAdjacentElement("afterbegin", panel);
+    }
+  }
+
+  function resortLoadedCards() {
+    sortLoadedCards(document.getElementById("rclcp-sort-select")?.value || "original");
+  }
+
+  function loadMoreCruises() {
+    const button = findLoadMoreButton();
+    const statusNode = document.querySelector(`#${SORT_PANEL_ID} .rclcp-sort-count`);
+    if (!button) {
+      updateLoadMoreState();
+      if (statusNode) statusNode.textContent = i18n.allLoaded;
+      return;
+    }
+
+    button.click();
+    if (statusNode) statusNode.textContent = i18n.loadingMore;
+    window.setTimeout(() => {
+      scheduleProcess();
+      resortLoadedCards();
+      updateLoadMoreState();
+    }, 1200);
+  }
+
+  function updateLoadMoreState() {
+    const button = document.querySelector(`#${SORT_PANEL_ID} [data-rclcp-action="load-more"]`);
+    if (!button) return;
+
+    const nativeButton = findLoadMoreButton();
+    const disabled = !nativeButton;
+    const text = nativeButton ? i18n.loadMore : i18n.allLoaded;
+    if (button.disabled !== disabled) button.disabled = disabled;
+    if (button.textContent !== text) button.textContent = text;
+  }
+
+  function findLoadMoreButton() {
+    const controls = [...document.querySelectorAll('button, [role="button"]')];
+    return controls.find((node) => {
+      if (node.closest(`#${SORT_PANEL_ID}`)) return false;
+      if (node.disabled || node.getAttribute("aria-disabled") === "true") return false;
+      if (!isVisible(node)) return false;
+      return /(mehr laden|load more|show more|voir plus|cargar más|carica altro)/i.test(node.textContent || node.getAttribute("aria-label") || "");
+    });
+  }
+
+  function isVisible(node) {
+    const style = window.getComputedStyle(node);
+    return style.display !== "none" && style.visibility !== "hidden" && node.getClientRects().length > 0;
   }
 
   function findNativeSortControl() {
@@ -324,8 +414,6 @@
       personNightDesc: ["rclcpPersonNight", -1],
       cabinTotalAsc: ["rclcpCabinTotal", 1],
       cabinTotalDesc: ["rclcpCabinTotal", -1],
-      personPriceAsc: ["rclcpPricePerson", 1],
-      personPriceDesc: ["rclcpPricePerson", -1],
       nightsAsc: ["rclcpNights", 1],
       nightsDesc: ["rclcpNights", -1]
     };
@@ -335,7 +423,11 @@
 
   function updateSortCount() {
     const countNode = document.querySelector(`#${SORT_PANEL_ID} .rclcp-sort-count`);
-    if (countNode) countNode.textContent = i18n.loadedCount.replace("{count}", getSortableUnits().length);
+    if (countNode) {
+      const text = i18n.loadedCount.replace("{count}", getSortableUnits().length);
+      if (countNode.textContent !== text) countNode.textContent = text;
+    }
+    updateLoadMoreState();
   }
 
   function parseLocalizedNumber(input) {
@@ -401,8 +493,8 @@
       cabinNightAsc: "Kabinenpreis/Nacht – niedrigster zuerst", cabinNightDesc: "Kabinenpreis/Nacht – höchster zuerst",
       personNightAsc: "Preis pro Person/Nacht – niedrigster zuerst", personNightDesc: "Preis pro Person/Nacht – höchster zuerst",
       cabinTotalAsc: "Kabinen-Gesamtpreis – niedrigster zuerst", cabinTotalDesc: "Kabinen-Gesamtpreis – höchster zuerst",
-      personPriceAsc: "Preis pro Person – niedrigster zuerst", personPriceDesc: "Preis pro Person – höchster zuerst",
-      nightsAsc: "Nächte – kürzeste zuerst", nightsDesc: "Nächte – längste zuerst", loadedCount: "{count} geladene Reisen"
+      nightsAsc: "Nächte – kürzeste zuerst", nightsDesc: "Nächte – längste zuerst", loadedCount: "{count} geladene Reisen",
+      loadMore: "Mehr laden", resort: "Neu sortieren", allLoaded: "Alle Reisen sind geladen", loadingMore: "Lade weitere Reisen ..."
     } : {
       perCabin: "per cabin", perCabinNight: "per cabin/night", perPersonNight: "per person/night",
       guests: "guests", nights: "nights", assumedGuests: "Occupancy not shown – calculated for {count} guests.",
@@ -410,8 +502,8 @@
       cabinNightAsc: "Cabin price/night – lowest first", cabinNightDesc: "Cabin price/night – highest first",
       personNightAsc: "Price per person/night – lowest first", personNightDesc: "Price per person/night – highest first",
       cabinTotalAsc: "Total cabin price – lowest first", cabinTotalDesc: "Total cabin price – highest first",
-      personPriceAsc: "Price per person – lowest first", personPriceDesc: "Price per person – highest first",
-      nightsAsc: "Nights – shortest first", nightsDesc: "Nights – longest first", loadedCount: "{count} loaded cruises"
+      nightsAsc: "Nights – shortest first", nightsDesc: "Nights – longest first", loadedCount: "{count} loaded cruises",
+      loadMore: "Load more", resort: "Sort again", allLoaded: "All cruises are loaded", loadingMore: "Loading more cruises ..."
     };
   }
 
