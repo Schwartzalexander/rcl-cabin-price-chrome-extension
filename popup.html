@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RCL Cabin Price</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <h1>RCL Cabin Price</h1>
+    <p>Belegung für die Hochrechnung:</p>
+
+    <label class="option">
+      <input type="radio" name="guestMode" value="auto">
+      <span><strong>Automatisch</strong><small>Aus Karte/Filter lesen; sonst 2 Gäste annehmen.</small></span>
+    </label>
+
+    <label class="option manual-option">
+      <input type="radio" name="guestMode" value="manual">
+      <span><strong>Manuell</strong><small>Für Seiten ohne sichtbare Belegung.</small></span>
+    </label>
+
+    <label class="guest-row">
+      <span>Anzahl Gäste</span>
+      <input id="manualGuests" type="number" min="1" max="12" step="1" value="2">
+    </label>
+
+    <div id="status" role="status"></div>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

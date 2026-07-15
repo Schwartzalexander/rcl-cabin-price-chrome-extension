@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "RCL Cabin Price & Sort",
+  "version": "1.0.0",
+  "description": "Calculates Royal Caribbean cabin totals and nightly prices and sorts loaded cruise cards.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://*.royalcaribbean.com/*",
+    "https://*.royalcaribbean.de/*",
+    "https://*.royalcaribbean.co.uk/*",
+    "https://*.royalcaribbean.com.au/*",
+    "https://*.royalcaribbean.fr/*",
+    "https://*.royalcaribbean.es/*",
+    "https://*.royalcaribbean.it/*",
+    "https://*.royalcaribbean.com.br/*",
+    "https://*.royalcaribbean.com.mx/*",
+    "https://*.royalcaribbean.com.sg/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.royalcaribbean.com/*",
+        "https://*.royalcaribbean.de/*",
+        "https://*.royalcaribbean.co.uk/*",
+        "https://*.royalcaribbean.com.au/*",
+        "https://*.royalcaribbean.fr/*",
+        "https://*.royalcaribbean.es/*",
+        "https://*.royalcaribbean.it/*",
+        "https://*.royalcaribbean.com.br/*",
+        "https://*.royalcaribbean.com.mx/*",
+        "https://*.royalcaribbean.com.sg/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "RCL Cabin Price settings",
+    "default_popup": "popup.html"
+  }
+}
