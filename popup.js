@@ -29,7 +29,7 @@ function save() {
   manualGuests.value = guests;
 
   chrome.storage.sync.set({ guestMode, manualGuests: guests, showPersonNight: showPersonNight.checked }, () => {
-    status.textContent = "Gespeichert";
+    status.textContent = "Saved";
     window.setTimeout(() => { status.textContent = ""; }, 1000);
   });
 }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,26 +9,26 @@
 <body>
   <main>
     <h1>RCL Cabin Price</h1>
-    <p>Belegung für die Hochrechnung:</p>
+    <p>Occupancy used for the calculation:</p>
 
     <label class="option">
       <input type="radio" name="guestMode" value="auto">
-      <span><strong>Automatisch</strong><small>Aus Karte/Filter lesen; sonst 2 Gäste annehmen.</small></span>
+      <span><strong>Automatic</strong><small>Read from the card/filter; otherwise assume 2 guests.</small></span>
     </label>
 
     <label class="option manual-option">
       <input type="radio" name="guestMode" value="manual">
-      <span><strong>Manuell</strong><small>Für Seiten ohne sichtbare Belegung.</small></span>
+      <span><strong>Manual</strong><small>For pages without visible occupancy.</small></span>
     </label>
 
     <label class="guest-row">
-      <span>Anzahl Gäste</span>
+      <span>Number of guests</span>
       <input id="manualGuests" type="number" min="1" max="12" step="1" value="2">
     </label>
 
     <label class="option">
       <input id="showPersonNight" type="checkbox">
-      <span><strong>Preis pro Person pro Nacht anzeigen</strong><small>Aktiviert zusätzlich Anzeige und Sortierung nach Person/Nacht.</small></span>
+      <span><strong>Show price per person per night</strong><small>Adds the person/night price and sorting options.</small></span>
     </label>
 
     <div id="status" role="status"></div>

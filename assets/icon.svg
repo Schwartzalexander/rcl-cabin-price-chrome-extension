@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="RCL Cabin Price icon">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b4b8f"/>
+      <stop offset="1" stop-color="#071d49"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd66b"/>
+      <stop offset="1" stop-color="#f2a900"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#sea)"/>
+  <path d="M22 83c12 8 26 12 42 12s30-4 42-12l-8 17H30z" fill="#ffffff" opacity="0.96"/>
+  <path d="M31 55h54l17 24H20z" fill="#ffffff"/>
+  <path d="M43 38h31l13 17H34z" fill="#dcecff"/>
+  <path d="M48 45h8M63 45h8" stroke="#0b4b8f" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="88" cy="38" r="20" fill="url(#gold)"/>
+  <path d="M88 27v22M80 34h13a6 6 0 0 1 0 12H79" fill="none" stroke="#071d49" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 103c10-5 18-5 28 0s18 5 28 0 18-5 28 0" fill="none" stroke="#7ec8ff" stroke-width="7" stroke-linecap="round"/>
+</svg>

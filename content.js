@@ -484,18 +484,7 @@
   }
 
   function getUiText() {
-    const lang = (document.documentElement.lang || navigator.language || "en").toLowerCase();
-    const de = lang.startsWith("de");
-    return de ? {
-      perCabin: "pro Kabine", perCabinNight: "pro Kabine/Nacht", perPersonNight: "pro Person/Nacht",
-      guests: "Gäste", nights: "Nächte", assumedGuests: "Belegung nicht sichtbar – mit {count} Gästen berechnet.",
-      sortLabel: "RCL-Zusatzsortierung:", original: "Ursprüngliche Reihenfolge",
-      cabinNightAsc: "Kabinenpreis/Nacht – niedrigster zuerst", cabinNightDesc: "Kabinenpreis/Nacht – höchster zuerst",
-      personNightAsc: "Preis pro Person/Nacht – niedrigster zuerst", personNightDesc: "Preis pro Person/Nacht – höchster zuerst",
-      cabinTotalAsc: "Kabinen-Gesamtpreis – niedrigster zuerst", cabinTotalDesc: "Kabinen-Gesamtpreis – höchster zuerst",
-      nightsAsc: "Nächte – kürzeste zuerst", nightsDesc: "Nächte – längste zuerst", loadedCount: "{count} geladene Reisen",
-      loadMore: "Mehr laden", resort: "Neu sortieren", allLoaded: "Alle Reisen sind geladen", loadingMore: "Lade weitere Reisen ..."
-    } : {
+    return {
       perCabin: "per cabin", perCabinNight: "per cabin/night", perPersonNight: "per person/night",
       guests: "guests", nights: "nights", assumedGuests: "Occupancy not shown – calculated for {count} guests.",
       sortLabel: "RCL extra sorting:", original: "Original order",
