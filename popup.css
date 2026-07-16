@@ -1,7 +1,9 @@
-body { margin: 0; min-width: 320px; background: #f5f7fb; color: #071d49; font: 14px/1.4 Arial, sans-serif; }
+body { margin: 0; min-width: 340px; background: #f5f7fb; color: #071d49; font: 14px/1.4 Arial, sans-serif; }
 main { padding: 16px; }
-h1 { margin: 0 0 8px; font-size: 20px; }
+h1 { margin: 0 0 6px; font-size: 20px; }
+h2 { margin: 14px 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #40577a; }
 p { margin: 0 0 12px; }
+.intro { padding-bottom: 12px; border-bottom: 1px solid #d6e0ee; color: #40577a; }
 .option { display: flex; gap: 9px; margin: 8px 0; padding: 10px; border: 1px solid #c7d3e5; border-radius: 6px; background: white; cursor: pointer; }
 .option input { margin-top: 3px; }
 .option span { display: flex; flex-direction: column; }

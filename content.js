@@ -3,6 +3,7 @@
 
   const PRICE_SELECTOR = '[data-testid^="cruise-price-label-"]';
   const AVG_LABEL_SELECTOR = '[data-testid^="cruise-price-avg-label-"]';
+  const CARD_SELECTOR = '[data-testid^="cruise-card-container_"], [id^="cruise-card_"]';
   const SORT_PANEL_ID = "rclcp-sort-panel";
   const PRICE_BOX_CLASS = "rclcp-price-box";
   const DEFAULT_SETTINGS = { guestMode: "auto", manualGuests: 2, showPersonNight: false };
@@ -55,11 +56,11 @@
   }
 
   function processCards() {
-    document.querySelectorAll(PRICE_SELECTOR).forEach((priceElement) => {
+    getPriceElements().forEach((priceElement) => {
       try {
         enhancePrice(priceElement);
       } catch (error) {
-        console.debug("RCL Cabin Price: unable to process card", error);
+        console.debug("Cruise Cabin Price: unable to process card", error);
       }
     });
   }
@@ -75,7 +76,7 @@
       sortableUnit.dataset.rclcpOriginalIndex = String(originalSequence++);
     }
 
-    const price = readPrice(priceElement);
+    const price = readPrice(priceElement, detailsRoot);
     const nights = readNights(priceElement, sortableUnit);
     const guestInfo = determineGuestInfo(detailsRoot);
 
@@ -94,8 +95,8 @@
     let box = detailsRoot.querySelector(`.${PRICE_BOX_CLASS}`);
     if (!box) {
       box = document.createElement("div");
-      box.className = PRICE_BOX_CLASS;
-      (priceElement.parentElement || priceElement).append(box);
+      box.className = `${PRICE_BOX_CLASS} ${priceElement.dataset.rclcpFallbackPrice === "true" ? "rclcp-price-box--fallback" : ""}`.trim();
+      placePriceBox(box, detailsRoot, priceElement);
     }
 
     const warning = guestInfo.assumed
@@ -114,14 +115,57 @@
     `;
   }
 
-  function findDetailsRoot(priceElement) {
-    return priceElement.closest('[class*="RefinedCruiseCardDetails"]') || climbUntil(priceElement, (node) => {
-      return node.querySelector?.('[data-testid^="cruise-ship-label-"]') &&
-        node.querySelector?.('[data-testid^="cruise-view-dates-button-"]');
+  function placePriceBox(box, detailsRoot, priceElement) {
+    const buttons = findCardButtons(detailsRoot);
+    if (priceElement.dataset.rclcpFallbackPrice === "true" && buttons) {
+      buttons.insertAdjacentElement("afterend", box);
+      return;
+    }
+
+    (priceElement.parentElement || priceElement).append(box);
+  }
+
+  function findCardButtons(detailsRoot) {
+    return [...detailsRoot.querySelectorAll("div")].find((node) => {
+      const text = normalizeText(node.textContent);
+      if (text.length > 120) return false;
+      return /view\s+itinerary/i.test(text) && /view\s+\d+\s+dates?/i.test(text);
     });
   }
 
+  function findDetailsRoot(priceElement) {
+    return priceElement.closest(CARD_SELECTOR) || priceElement.closest('[class*="RefinedCruiseCardDetails"]') || climbUntil(priceElement, (node) => {
+      return node.querySelector?.('[data-testid^="cruise-ship-label-"]') &&
+        node.querySelector?.('[data-testid^="cruise-view-dates-button-"]');
+    }) || climbUntil(priceElement, looksLikeCruiseCard);
+  }
+
+  function looksLikeCruiseCard(node) {
+    const text = normalizeText(node.textContent);
+    if (text.length > 2500) return false;
+    return /avg\s+per\s+person/i.test(text) &&
+      /(view\s+(?:itinerary|\d+\s+dates?|dates?)|select|book)/i.test(text) &&
+      /(\d{1,3})\s*(?:nächte|nacht|nights?|nuits?|noches?|notti?|noites?)/i.test(text) &&
+      /(?:US\$|A\$|C\$|R\$|[$€£]|\b(?:USD|EUR|GBP|AUD|CAD|BRL|SGD)\b)\s*\d|\d[\d.,]*\s*(?:USD|EUR|GBP|AUD|CAD|BRL|SGD)\b/i.test(text);
+  }
+
+  function getPriceElements() {
+    const elements = new Set(document.querySelectorAll(PRICE_SELECTOR));
+
+    document.querySelectorAll("p, span, div").forEach((node) => {
+      const text = normalizeText(node.textContent);
+      if (!/^avg\s+per\s+person\*?\s+for$/i.test(text)) return;
+      if (!findDetailsRoot(node)) return;
+      node.dataset.rclcpFallbackPrice = "true";
+      elements.add(node);
+    });
+
+    return [...elements];
+  }
+
   function findSortableUnit(detailsRoot, priceElement) {
+    if (priceElement.dataset.rclcpFallbackPrice === "true" || detailsRoot.matches(CARD_SELECTOR)) return detailsRoot;
+
     let current = detailsRoot;
     let best = detailsRoot;
 
@@ -150,15 +194,31 @@
     return null;
   }
 
-  function readPrice(priceElement) {
+  function readPrice(priceElement, detailsRoot) {
     const spans = priceElement.querySelectorAll("span");
-    if (spans.length < 2) return null;
+    if (spans.length >= 2) {
+      const symbol = spans[0].textContent.trim();
+      const amount = parseLocalizedNumber(spans[1].textContent);
+      if (Number.isFinite(amount)) return { amount, symbol, currencyCode: detectCurrencyCode(symbol) };
+    }
 
-    const symbol = spans[0].textContent.trim();
-    const amount = parseLocalizedNumber(spans[1].textContent);
-    if (!Number.isFinite(amount)) return null;
+    return readPriceFromText(detailsRoot.textContent || priceElement.textContent || "");
+  }
 
-    return { amount, symbol, currencyCode: detectCurrencyCode(symbol) };
+  function readPriceFromText(text) {
+    const afterAverageLabel = normalizeText(text).split(/avg\s+per\s+person\*?\s+for/i).pop() || text;
+    const symbolMatch = afterAverageLabel.match(/(US\$|A\$|C\$|R\$|[$€£])\s*([\d.,]+)(?:\s*(USD|EUR|GBP|AUD|CAD|BRL|SGD))?/i);
+    if (symbolMatch) {
+      const amount = parseLocalizedNumber(symbolMatch[2]);
+      if (Number.isFinite(amount)) return { amount, symbol: symbolMatch[1], currencyCode: symbolMatch[3] || detectCurrencyCode(symbolMatch[1]) };
+    }
+
+    const codeMatch = afterAverageLabel.match(/([\d.,]+)\s*(USD|EUR|GBP|AUD|CAD|BRL|SGD)\b/i);
+    if (!codeMatch) return null;
+
+    const amount = parseLocalizedNumber(codeMatch[1]);
+    const currencyCode = codeMatch[2].toUpperCase();
+    return Number.isFinite(amount) ? { amount, symbol: symbolForCurrency(currencyCode), currencyCode } : null;
   }
 
   function readNights(priceElement, card) {
@@ -182,6 +242,9 @@
     const occupancyText = detailsRoot.querySelector(AVG_LABEL_SELECTOR)?.nextElementSibling?.textContent?.trim() || "";
     const fromCard = parseGuestCount(occupancyText);
     if (fromCard) return { count: fromCard, source: "card", assumed: false };
+
+    const fromCardText = parseGuestCount(detailsRoot.textContent || "");
+    if (fromCardText) return { count: fromCardText, source: "card", assumed: false };
 
     const fromUrl = readGuestCountFromUrl();
     if (fromUrl) return { count: fromUrl, source: "url", assumed: false };
@@ -247,7 +310,7 @@
   }
 
   function ensureSortPanel() {
-    if (!document.querySelector(PRICE_SELECTOR)) return;
+    if (!getPriceElements().length) return;
 
     let panel = document.getElementById(SORT_PANEL_ID);
     if (!panel) {
@@ -321,7 +384,8 @@
       return;
     }
     const nativeSort = findNativeSortControl();
-    const insertionTarget = nativeSort?.parentElement || document.querySelector(PRICE_SELECTOR).closest("main") || document.body;
+    const firstPrice = getPriceElements()[0];
+    const insertionTarget = nativeSort?.parentElement || firstPrice?.closest("main") || document.body;
     if (nativeSort?.parentElement) {
       if (panel.previousElementSibling !== nativeSort.parentElement) nativeSort.parentElement.insertAdjacentElement("afterend", panel);
     } else if (insertionTarget.firstElementChild !== panel) {
@@ -371,12 +435,12 @@
       }
 
       loadAllActive = false;
-      processCards();
-      ensureSortPanel();
-      resortLoadedCards();
-      updateSortCount();
-      updateLoadMoreState();
-      if (statusNode) statusNode.textContent = i18n.allLoaded;
+      scheduleProcess();
+      window.setTimeout(() => {
+        resortLoadedCards();
+        updateLoadMoreState();
+        if (statusNode) statusNode.textContent = i18n.allLoaded;
+      }, 300);
       return;
     }
 
@@ -434,7 +498,7 @@
   function getSortableUnits() {
     const units = [];
     const seen = new Set();
-    document.querySelectorAll(PRICE_SELECTOR).forEach((priceElement) => {
+    getPriceElements().forEach((priceElement) => {
       const details = findDetailsRoot(priceElement);
       const unit = details && findSortableUnit(details, priceElement);
       if (unit && unit.dataset.rclcpCabinNight && !seen.has(unit)) {
@@ -507,6 +571,14 @@
     return Number.parseFloat(value);
   }
 
+  function normalizeText(text) {
+    return String(text || "").replace(/\s+/g, " ").trim();
+  }
+
+  function symbolForCurrency(currencyCode) {
+    return { USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "C$", BRL: "R$", SGD: "$" }[currencyCode] || currencyCode;
+  }
+
   function normalizeSeparator(value, separator) {
     const parts = value.split(separator);
     return parts.length === 2 && parts[1].length === 2 ? `${parts[0]}.${parts[1]}` : parts.join("");
@@ -550,7 +622,7 @@
     return {
       perCabin: "per cabin", perCabinNight: "per cabin/night", perPersonNight: "per person/night",
       guests: "guests", nights: "nights", assumedGuests: "Occupancy not shown – calculated for {count} guests.",
-      sortLabel: "RCL extra sorting:", original: "Original order",
+      sortLabel: "Extra sorting:", original: "Original order",
       cabinNightAsc: "Cabin price/night – lowest first", cabinNightDesc: "Cabin price/night – highest first",
       personNightAsc: "Price per person/night – lowest first", personNightDesc: "Price per person/night – highest first",
       cabinTotalAsc: "Total cabin price – lowest first", cabinTotalDesc: "Total cabin price – highest first",

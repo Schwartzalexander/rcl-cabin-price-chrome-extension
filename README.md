@@ -1,6 +1,6 @@
-# RCL Cabin Price & Sort
+# Cruise Cabin Price & Sort
 
-Chromium extension for Royal Caribbean search results.
+Chromium extension for Royal Caribbean and Celebrity Cruises search results.
 
 ## Features
 
@@ -14,7 +14,7 @@ Chromium extension for Royal Caribbean search results.
   - Cruise duration ascending and descending
   - Original order
 - Load more cruises from the extra sorting panel
-- Automatic occupancy detection from the card, URL, or visible filters when RCL shows it
+- Automatic occupancy detection from the card, URL, or visible filters when the site shows it
 - Manual guest count from the extension popup
 
 ## Installation
@@ -24,16 +24,16 @@ Chromium extension for Royal Caribbean search results.
 3. Enable developer mode.
 4. Choose **Load unpacked**.
 5. Select the `rcl-cabin-price-extension` folder.
-6. Reload the RCL search results.
+6. Reload the Royal Caribbean or Celebrity Cruises search results.
 
 ## Using The Sorting
 
 The extension only sorts cards that are already loaded in the DOM. Use **Load more** in the extra sorting panel until all desired results are loaded, then choose the extra sorting mode.
 
-## Guest Count On The US Site
+## Guest Count On The US Sites
 
-The provided US page contains `show-number-of-guests: false`, and the card occupancy line is empty. In automatic mode, the extension therefore assumes 2 guests. A manual guest count can be set from the extension popup.
+Some US search pages contain `show-number-of-guests: false`, and the card occupancy line can be empty. In automatic mode, the extension therefore assumes 2 guests. A manual guest count can be set from the extension popup.
 
 ## Note
 
-The calculation is based on the average per-person price shown by RCL. The final price in the booking flow can change depending on date, cabin category, availability, or promotions.
+The calculation is based on the average per-person price shown by the cruise line. The final price in the booking flow can change depending on date, cabin category, availability, or promotions.
