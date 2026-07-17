@@ -207,6 +207,8 @@ Manifest uses the extension icons for both top-level `icons` and `action.default
 
 ## Store Submission Notes
 
+Long-form store listing text is maintained in `STORE_DESCRIPTION.md`.
+
 Use this permission justification for `storage`:
 
 ```text
